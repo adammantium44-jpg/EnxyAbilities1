@@ -1,8 +1,7 @@
-name: Build SKSE Plugin
+name: Build EnxyAbilities
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -10,23 +9,49 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Setup CMake
-        uses: lukka/get-cmake@latest
+    - uses: microsoft/setup-msbuild@v2
 
-      - name: Setup Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v4
+    - uses: lukka/get-cmake@latest
 
-      - name: Configure
-        run: cmake -B build -S . -G Ninja
+    - uses: lukka/run-vcpkg@v11
 
-      - name: Build
-        run: cmake --build build --config Release
+    # CACHE
+    - name: Cache vcpkg
+      uses: actions/cache@v4
+      with:
+        path: |
+          build
+          vcpkg_installed
+          C:/vcpkg/packages
+          C:/vcpkg/downloads
+          C:/vcpkg/buildtrees
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: skse-plugin
-          path: build/**/*.dll
+    - name: Clean
+      shell: cmd
+      run: |
+        if exist build rmdir /s /q build
+
+    - name: Configure
+      shell: cmd
+      run: |
+        cmake -B build ^
+        -S . ^
+        -A x64 ^
+        -DCMAKE_BUILD_TYPE=Release ^
+        -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
+        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
+        -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%\scripts\buildsystems\vcpkg.cmake
+
+    - name: Build
+      shell: cmd
+      run: |
+        cmake --build build --config Release
+
+    - name: Upload DLL
+      uses: actions/upload-artifact@v4
+      with:
+        name: EnxyAbilities
+        path: build/**/*.dll
