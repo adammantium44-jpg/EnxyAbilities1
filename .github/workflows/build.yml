@@ -12,42 +12,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      # =========================
-      # CMake + Ninja
-      # =========================
       - name: Setup CMake
         uses: lukka/get-cmake@latest
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v4
 
-      # =========================
-      # vcpkg setup (IMPORTANT FIX)
-      # =========================
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgDirectory: ${{ github.workspace }}/vcpkg
-          runVcpkgInstall: true
-
-      # =========================
-      # Configure CMake
-      # =========================
-      - name: Configure CMake
+      - name: Configure
         run: cmake -B build -S . -G Ninja
 
-      # =========================
-      # Build
-      # =========================
       - name: Build
         run: cmake --build build --config Release
 
-      # =========================
-      # Upload DLL
-      # =========================
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
