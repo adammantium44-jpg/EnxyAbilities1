@@ -2,6 +2,7 @@ name: Build SKSE Plugin
 
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -9,19 +10,46 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
+      # =========================
+      # CMake + Ninja
+      # =========================
       - name: Setup CMake
         uses: lukka/get-cmake@latest
 
-      - name: Configure
-        run: cmake -B build -S .
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v4
 
+      # =========================
+      # vcpkg setup (IMPORTANT FIX)
+      # =========================
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: ${{ github.workspace }}/vcpkg
+          runVcpkgInstall: true
+
+      # =========================
+      # Configure CMake
+      # =========================
+      - name: Configure CMake
+        run: cmake -B build -S . -G Ninja
+
+      # =========================
+      # Build
+      # =========================
       - name: Build
         run: cmake --build build --config Release
 
-      - name: Upload DLL
+      # =========================
+      # Upload DLL
+      # =========================
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: plugin
+          name: skse-plugin
           path: build/**/*.dll
