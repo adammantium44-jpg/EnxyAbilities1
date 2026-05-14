@@ -24,11 +24,24 @@ endif()
 # =====================================================
 include(FetchContent)
 
+# =========================
+# spdlog dependency (FIX ERROR)
+# =========================
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.14.1
+)
+
+FetchContent_MakeAvailable(spdlog)
+
 FetchContent_Declare(
     CommonLibSSE
     GIT_REPOSITORY https://github.com/CharmedBaryon/CommonLibSSE.git
     GIT_TAG main
 )
+
+set(SPDLOG_INCLUDE_DIR ${spdlog_SOURCE_DIR}/include CACHE PATH "" FORCE)
 
 FetchContent_MakeAvailable(CommonLibSSE)
 
