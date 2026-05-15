@@ -1,8 +1,4 @@
 #include "PCH.h"
-
-// =========================
-// Prisma UI API (GLOBAL)
-// =========================
 #include "PrismaUI_API.h"
 
 static bool g_uiVisible = false;
@@ -10,21 +6,60 @@ static PrismaView g_view = 0;
 
 static void InGameLog(const char* msg)
 {
-    RE::ConsoleLog::GetSingleton()->Print(msg);
+    if (RE::ConsoleLog::GetSingleton()) {
+        RE::ConsoleLog::GetSingleton()->Print(msg);
+    }
 }
 
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 
 // =========================
-// FORWARD DECLARATION
+// FORWARD DECLARATIONS & FUNCTIONS
 // =========================
-static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message);
 void InitializeUI();
+void ToggleUI();
+
+// =========================
+// INPUT HANDLER (Dipindah ke atas agar bisa dibaca compiler)
+// =========================
+class InputHandler : public RE::BSTEventSink<RE::InputEvent*>
+{
+public:
+    static InputHandler* GetSingleton()
+    {
+        static InputHandler instance;
+        return &instance;
+    }
+
+    RE::BSEventNotifyControl ProcessEvent(
+        RE::InputEvent* const* a_events,
+        RE::BSTEventSource<RE::InputEvent*>*) override
+    {
+        if (!a_events)
+            return RE::BSEventNotifyControl::Continue;
+
+        for (auto event = *a_events; event; event = event->next)
+            {
+            auto button = event->AsButtonEvent();
+            // Pastikan tombol ditekan, dan HARUS dari keyboard
+            if (!button || !button->IsDown() || button->GetDevice() != RE::INPUT_DEVICE::kKeyboard)
+                continue;
+
+            if (button->GetIDCode() == 0x3F) // F6
+            {
+                ToggleUI();
+            }
+        }
+
+        return RE::BSEventNotifyControl::Continue;
+    }
+};
+
+static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message);
 
 // =========================
 // SKSE LOAD ENTRY POINT
 // =========================
-
 bool SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
     SKSE::Init(skse);
@@ -38,9 +73,9 @@ bool SKSEPluginLoad(const SKSE::LoadInterface* skse)
     }
 
     SKSE::log::info("EnxyAbilities loaded successfully");
-
     return true;
 }
+
 // =========================
 // MESSAGE HANDLER
 // =========================
@@ -79,7 +114,6 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
             }
         
             InitializeUI();
-        
             break;
         }
 
@@ -89,7 +123,7 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 }
 
 // =========================
-// UI INITIALIZATION
+// UI FUNCTIONS
 // =========================
 void InitializeUI()
 {
@@ -119,7 +153,7 @@ void InitializeUI()
 
     PrismaUI->Hide(g_view); // start hidden
 
-    InGameLog(">>> UI SHOWN");
+    InGameLog(">>> UI INITIALIZED");
     SKSE::log::info("UI initialized");
 }
 
@@ -133,47 +167,13 @@ void ToggleUI()
         PrismaUI->Hide(g_view);
         PrismaUI->Unfocus(g_view);
         g_uiVisible = false;
-
-        RE::ConsoleLog::GetSingleton()->Print("UI HIDDEN");
+        InGameLog("UI HIDDEN");
     }
     else
     {
         PrismaUI->Show(g_view);
         PrismaUI->Focus(g_view, false);
         g_uiVisible = true;
-
-        RE::ConsoleLog::GetSingleton()->Print("UI SHOWN");
+        InGameLog("UI SHOWN");
     }
 }
-
-class InputHandler : public RE::BSTEventSink<RE::InputEvent*>
-{
-public:
-    static InputHandler* GetSingleton()
-    {
-        static InputHandler instance;
-        return &instance;
-    }
-
-    RE::BSEventNotifyControl ProcessEvent(
-        RE::InputEvent* const* a_events,
-        RE::BSTEventSource<RE::InputEvent*>*) override
-    {
-        if (!a_events)
-            return RE::BSEventNotifyControl::Continue;
-
-        for (auto event = *a_events; event; event = event->next)
-        {
-            auto button = event->AsButtonEvent();
-            if (!button || !button->IsDown())
-                continue;
-
-            if (button->GetIDCode() == 0x3F) // F6
-            {
-                ToggleUI();
-            }
-        }
-
-        return RE::BSEventNotifyControl::Continue;
-    }
-};
