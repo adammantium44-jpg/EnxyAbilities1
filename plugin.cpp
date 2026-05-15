@@ -5,6 +5,11 @@
 // =========================
 #include "PrismaUI_API.h"
 
+static void InGameLog(const char* msg)
+{
+    RE::ConsoleLog::GetSingleton()->Print(msg);
+}
+
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 
 // =========================
