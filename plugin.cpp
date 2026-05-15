@@ -14,13 +14,13 @@ static void InGameLog(const char* msg)
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 
 // =========================
-// FORWARD DECLARATIONS & FUNCTIONS
+// FORWARD DECLARATIONS
 // =========================
 void InitializeUI();
 void ToggleUI();
 
 // =========================
-// INPUT HANDLER (Dipindah ke atas agar bisa dibaca compiler)
+// INPUT HANDLER
 // =========================
 class InputHandler : public RE::BSTEventSink<RE::InputEvent*>
 {
@@ -36,12 +36,11 @@ public:
         RE::BSTEventSource<RE::InputEvent*>*) override
     {
         if (!a_events)
-            return RE::BSEventNotifyControl::Continue;
+            return RE::BSEventNotifyControl::kContinue; // PERBAIKAN: Menggunakan kContinue
 
         for (auto event = *a_events; event; event = event->next)
-            {
+        {
             auto button = event->AsButtonEvent();
-            // Pastikan tombol ditekan, dan HARUS dari keyboard
             if (!button || !button->IsDown() || button->GetDevice() != RE::INPUT_DEVICE::kKeyboard)
                 continue;
 
@@ -51,7 +50,7 @@ public:
             }
         }
 
-        return RE::BSEventNotifyControl::Continue;
+        return RE::BSEventNotifyControl::kContinue; // PERBAIKAN: Menggunakan kContinue
     }
 };
 
@@ -60,7 +59,8 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message);
 // =========================
 // SKSE LOAD ENTRY POINT
 // =========================
-bool SKSEPluginLoad(const SKSE::LoadInterface* skse)
+// PERBAIKAN: Hapus kata 'bool' di depan karena SKSEPluginLoad adalah Macro
+SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
     SKSE::Init(skse);
 
@@ -151,7 +151,7 @@ void InitializeUI()
 
     InGameLog(">>> VIEW CREATED SUCCESS");
 
-    PrismaUI->Hide(g_view); // start hidden
+    PrismaUI->Hide(g_view);
 
     InGameLog(">>> UI INITIALIZED");
     SKSE::log::info("UI initialized");
