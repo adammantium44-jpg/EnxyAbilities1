@@ -1,5 +1,6 @@
 #include "PCH.h"
 #include "PrismaUI_API.h"
+#include <filesystem>
 
 static bool g_uiVisible = false;
 static PrismaView g_view = 0;
@@ -44,7 +45,7 @@ public:
             if (!button || !button->IsDown() || button->GetDevice() != RE::INPUT_DEVICE::kKeyboard)
                 continue;
 
-            if (button->GetIDCode() == 0x3F) // F6
+            if (button->GetIDCode() == 0x40) // F6
             {
                 ToggleUI();
             }
@@ -135,22 +136,34 @@ void InitializeUI()
         return;
     }
 
+    // 1. Ambil folder aktif (Direktori utama Skyrim)
+    std::filesystem::path currentDir = std::filesystem::current_path();
+    
+    // 2. Tentukan relative path file HTML kamu
+    std::string relativePath = "PrismaUI/Views/EnxyAbilities/setting.html";
+    
+    // 3. Gabungkan menjadi absolute path (Lokasi nyata di komputer)
+    std::filesystem::path fullPath = currentDir / relativePath;
+
+    // 4. Cetak ke Console Log Game agar kamu bisa tahu persis letaknya
+    char buffer[512];
+    sprintf_s(buffer, ">>> Mencari HTML di: %s", fullPath.string().c_str());
+    InGameLog(buffer);
+    SKSE::log::info("Mencari HTML di: {}", fullPath.string());
+
     InGameLog(">>> Creating View...");
+    g_view = PrismaUI->CreateView(relativePath.c_str());
 
-    g_view = PrismaUI->CreateView("PrismaUI/Views/EnxyAbilities/setting.html");
-
-    char buffer[64];
     sprintf_s(buffer, ">>> View ID: %llu", g_view);
     InGameLog(buffer);
 
     if (!PrismaUI->IsValid(g_view)) {
-        InGameLog(">>> VIEW INVALID");
+        InGameLog(">>> VIEW INVALID (File HTML tidak ditemukan di lokasi di atas!)");
         SKSE::log::error("View invalid");
         return;
     }
 
     InGameLog(">>> VIEW CREATED SUCCESS");
-
     PrismaUI->Hide(g_view);
 
     InGameLog(">>> UI INITIALIZED");
