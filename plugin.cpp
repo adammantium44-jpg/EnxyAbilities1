@@ -137,7 +137,7 @@ void InitializeUI()
 
     InGameLog(">>> Creating View...");
 
-    g_view = PrismaUI->CreateView("EnxyAbilities/setting.html");
+    g_view = PrismaUI->CreateView("PrismaUI/Views/EnxyAbilities/setting.html");
 
     char buffer[64];
     sprintf_s(buffer, ">>> View ID: %llu", g_view);
