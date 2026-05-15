@@ -45,27 +45,31 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
     {
         case SKSE::MessagingInterface::kDataLoaded:
         {
-            SKSE::log::info("Game data loaded");
-
-            // =========================
-            // INIT PRISMA UI API
-            // =========================
+            RE::ConsoleLog::GetSingleton()->Print("kDataLoaded OK");
+        
+            SKSE::log::info("Checking PrismaUI...");
+        
             PrismaUI = static_cast<PRISMA_UI_API::IVPrismaUI1*>(
                 PRISMA_UI_API::RequestPluginAPI(PRISMA_UI_API::InterfaceVersion::V1)
             );
-
+        
+            // =========================
+            // CHECK PRISMA UI RESULT
+            // =========================
             if (!PrismaUI) {
-                SKSE::log::error("Failed to initialize PrismaUI API");
+                SKSE::log::error("PrismaUI FAILED (nullptr)");
+                RE::DebugNotification("PrismaUI ❌ NOT FOUND");
+                RE::ConsoleLog::GetSingleton()->Print("PrismaUI NOT FOUND");
                 return;
             }
-
-            SKSE::log::info("PrismaUI API initialized successfully");
-
-            // =========================
-            // INIT YOUR UI SYSTEM
-            // =========================
+        
+            SKSE::log::info("PrismaUI FOUND!");
+        
+            RE::DebugNotification("PrismaUI ✔ CONNECTED");
+            RE::ConsoleLog::GetSingleton()->Print("PrismaUI CONNECTED");
+        
             InitializeUI();
-
+        
             break;
         }
 
