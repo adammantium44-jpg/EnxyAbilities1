@@ -59,7 +59,7 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message);
 // =========================
 // SKSE LOAD ENTRY POINT
 // =========================
-// PERBAIKAN: Hapus kata 'bool' di depan karena SKSEPluginLoad adalah Macro
+// PERBAIKAN: Hapus kata 'bool' di depan karena SKSEPluginLoad adalah Macro oke
 SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
     SKSE::Init(skse);
