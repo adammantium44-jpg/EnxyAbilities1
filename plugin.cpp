@@ -37,21 +37,23 @@ public:
         RE::BSTEventSource<RE::InputEvent*>*) override
     {
         if (!a_events)
-            return RE::BSEventNotifyControl::kContinue; // PERBAIKAN: Menggunakan kContinue
+            return RE::BSEventNotifyControl::kContinue;
 
         for (auto event = *a_events; event; event = event->next)
         {
             auto button = event->AsButtonEvent();
+            // Memastikan input berasal dari Keyboard dan tombol sedang ditekan
             if (!button || !button->IsDown() || button->GetDevice() != RE::INPUT_DEVICE::kKeyboard)
                 continue;
 
-            if (button->GetIDCode() == 0x40) // F6
+            // PERBAIKAN: Menggunakan 0x40 untuk tombol F6 (0x3F adalah F5)
+            if (button->GetIDCode() == 0x40) 
             {
                 ToggleUI();
             }
         }
 
-        return RE::BSEventNotifyControl::kContinue; // PERBAIKAN: Menggunakan kContinue
+        return RE::BSEventNotifyControl::kContinue;
     }
 };
 
@@ -60,7 +62,6 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message);
 // =========================
 // SKSE LOAD ENTRY POINT
 // =========================
-// PERBAIKAN: Hapus kata 'bool' di depan karena SKSEPluginLoad adalah Macro oke
 SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
     SKSE::Init(skse);
@@ -136,35 +137,25 @@ void InitializeUI()
         return;
     }
 
-    // 1. Ambil folder aktif (Direktori utama Skyrim)
-    std::filesystem::path currentDir = std::filesystem::current_path();
-    
-    // 2. Tentukan relative path file HTML kamu
-    std::string relativePath = "PrismaUI/Views/EnxyAbilities/setting.html";
-    
-    // 3. Gabungkan menjadi absolute path (Lokasi nyata di komputer)
-    std::filesystem::path fullPath = currentDir / relativePath;
-
-    // 4. Cetak ke Console Log Game agar kamu bisa tahu persis letaknya
-    char buffer[512];
-    sprintf_s(buffer, ">>> Mencari HTML di: %s", fullPath.string().c_str());
-    InGameLog(buffer);
-    SKSE::log::info("Mencari HTML di: {}", fullPath.string());
-
     InGameLog(">>> Creating View...");
-    g_view = PrismaUI->CreateView(relativePath.c_str());
 
+    // PERBAIKAN: Disederhanakan menjadi "EnxyAbilities/setting.html"
+    // PrismaUI akan otomatis mencari ke file:///views/EnxyAbilities/setting.html
+    g_view = PrismaUI->CreateView("EnxyAbilities/setting.html");
+
+    char buffer[64];
     sprintf_s(buffer, ">>> View ID: %llu", g_view);
     InGameLog(buffer);
 
     if (!PrismaUI->IsValid(g_view)) {
-        InGameLog(">>> VIEW INVALID (File HTML tidak ditemukan di lokasi di atas!)");
+        InGameLog(">>> VIEW INVALID");
         SKSE::log::error("View invalid");
         return;
     }
 
     InGameLog(">>> VIEW CREATED SUCCESS");
-    PrismaUI->Hide(g_view);
+
+    PrismaUI->Hide(g_view); // Mulai dalam keadaan tersembunyi
 
     InGameLog(">>> UI INITIALIZED");
     SKSE::log::info("UI initialized");
