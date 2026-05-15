@@ -45,28 +45,23 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
     {
         case SKSE::MessagingInterface::kDataLoaded:
         {
-            RE::ConsoleLog::GetSingleton()->Print("kDataLoaded OK");
+            InGameLog(">>> kDataLoaded OK");
+            SKSE::log::info("kDataLoaded OK");
         
-            SKSE::log::info("Checking PrismaUI...");
+            InGameLog(">>> Checking PrismaUI...");
         
             PrismaUI = static_cast<PRISMA_UI_API::IVPrismaUI1*>(
                 PRISMA_UI_API::RequestPluginAPI(PRISMA_UI_API::InterfaceVersion::V1)
             );
         
-            // =========================
-            // CHECK PRISMA UI RESULT
-            // =========================
             if (!PrismaUI) {
-                SKSE::log::error("PrismaUI FAILED (nullptr)");
-                RE::DebugNotification("PrismaUI ❌ NOT FOUND");
-                RE::ConsoleLog::GetSingleton()->Print("PrismaUI NOT FOUND");
+                InGameLog(">>> PrismaUI NOT FOUND");
+                SKSE::log::error("PrismaUI FAILED");
                 return;
             }
         
-            SKSE::log::info("PrismaUI FOUND!");
-        
-            RE::DebugNotification("PrismaUI ✔ CONNECTED");
-            RE::ConsoleLog::GetSingleton()->Print("PrismaUI CONNECTED");
+            InGameLog(">>> PrismaUI CONNECTED");
+            SKSE::log::info("PrismaUI FOUND");
         
             InitializeUI();
         
@@ -83,18 +78,35 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 // =========================
 void InitializeUI()
 {
-    SKSE::log::info("Initializing EnxyAbilities UI...");
+    InGameLog(">>> InitializeUI START");
+    SKSE::log::info("InitializeUI START");
 
     if (!PrismaUI) {
-        SKSE::log::error("PrismaUI is null during UI init");
+        InGameLog(">>> PrismaUI NULL in InitUI");
         return;
     }
 
-    // TODO:
-    // - register UI view
-    // - bind JS bridge
-    // - load config
-    // - setup hotkey sync
+    InGameLog(">>> Creating View...");
 
-    SKSE::log::info("EnxyAbilities UI initialized");
+    static PrismaView g_view = 0;
+
+    g_view = PrismaUI->CreateView("EnxyAbilities/setting.html");
+
+    char buffer[64];
+    sprintf_s(buffer, ">>> View ID: %llu", g_view);
+    InGameLog(buffer);
+
+    if (!PrismaUI->IsValid(g_view)) {
+        InGameLog(">>> VIEW INVALID");
+        SKSE::log::error("View invalid");
+        return;
+    }
+
+    InGameLog(">>> VIEW CREATED SUCCESS");
+
+    PrismaUI->Show(g_view);
+    PrismaUI->Focus(g_view, true);
+
+    InGameLog(">>> UI SHOWN");
+    SKSE::log::info("UI initialized");
 }
