@@ -1,179 +1,54 @@
-#include "PCH.h"
-#include "PrismaUI_API.h"
+name: Build EnxyAbilities
 
-static bool g_uiVisible = false;
-static PrismaView g_view = 0;
+on:
+  push:
+  workflow_dispatch:
 
-static void InGameLog(const char* msg)
-{
-    if (RE::ConsoleLog::GetSingleton()) {
-        RE::ConsoleLog::GetSingleton()->Print(msg);
-    }
-}
+jobs:
+  build:
+    runs-on: windows-latest
 
-PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
+    steps:
+    - uses: actions/checkout@v4
 
-// =========================
-// FORWARD DECLARATIONS
-// =========================
-void InitializeUI();
-void ToggleUI();
+    - uses: microsoft/setup-msbuild@v2
 
-// =========================
-// INPUT HANDLER
-// =========================
-class InputHandler : public RE::BSTEventSink<RE::InputEvent*>
-{
-public:
-    static InputHandler* GetSingleton()
-    {
-        static InputHandler instance;
-        return &instance;
-    }
+    - uses: lukka/get-cmake@latest
 
-    RE::BSEventNotifyControl ProcessEvent(
-        RE::InputEvent* const* a_events,
-        RE::BSTEventSource<RE::InputEvent*>*) override
-    {
-        if (!a_events)
-            return RE::BSEventNotifyControl::kContinue; // PERBAIKAN: Menggunakan kContinue
+    - uses: lukka/run-vcpkg@v11
 
-        for (auto event = *a_events; event; event = event->next)
-        {
-            auto button = event->AsButtonEvent();
-            if (!button || !button->IsDown() || button->GetDevice() != RE::INPUT_DEVICE::kKeyboard)
-                continue;
+    # CACHE
+    - name: Cache vcpkg
+      uses: actions/cache@v4
+      with:
+        path: |
+          build
+          vcpkg_installed
+          C:/vcpkg/packages
+          C:/vcpkg/downloads
+          C:/vcpkg/buildtrees
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
 
-            if (button->GetIDCode() == 0x3F) // F6
-            {
-                ToggleUI();
-            }
-        }
-
-        return RE::BSEventNotifyControl::kContinue; // PERBAIKAN: Menggunakan kContinue
-    }
-};
-
-static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message);
-
-// =========================
-// SKSE LOAD ENTRY POINT
-// =========================
-// PERBAIKAN: Hapus kata 'bool' di depan karena SKSEPluginLoad adalah Macro
-SKSEPluginLoad(const SKSE::LoadInterface* skse)
-{
-    SKSE::Init(skse);
-
-    auto messaging = SKSE::GetMessagingInterface();
-    if (messaging) {
-        messaging->RegisterListener(SKSEMessageHandler);
-    } else {
-        SKSE::log::error("Messaging interface not found");
-        return false;
-    }
-
-    SKSE::log::info("EnxyAbilities loaded successfully");
-    return true;
-}
-
-// =========================
-// MESSAGE HANDLER
-// =========================
-static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
-{
-    if (!message)
-        return;
-
-    switch (message->type)
-    {
-        case SKSE::MessagingInterface::kDataLoaded:
-        {
-            InGameLog(">>> kDataLoaded OK");
-            SKSE::log::info("kDataLoaded OK");
-        
-            InGameLog(">>> Checking PrismaUI...");
-        
-            PrismaUI = static_cast<PRISMA_UI_API::IVPrismaUI1*>(
-                PRISMA_UI_API::RequestPluginAPI(PRISMA_UI_API::InterfaceVersion::V1)
-            );
-        
-            if (!PrismaUI) {
-                InGameLog(">>> PrismaUI NOT FOUND");
-                SKSE::log::error("PrismaUI FAILED");
-                return;
-            }
-        
-            InGameLog(">>> PrismaUI CONNECTED");
-            SKSE::log::info("PrismaUI FOUND");
-            
-            auto input = RE::BSInputDeviceManager::GetSingleton();
-            if (input)
-            {
-                input->AddEventSink(InputHandler::GetSingleton());
-                InGameLog("Input Handler Registered");
-            }
-        
-            InitializeUI();
-            break;
-        }
-
-        default:
-            break;
-    }
-}
-
-// =========================
-// UI FUNCTIONS
-// =========================
-void InitializeUI()
-{
-    InGameLog(">>> InitializeUI START");
-    SKSE::log::info("InitializeUI START");
-
-    if (!PrismaUI) {
-        InGameLog(">>> PrismaUI NULL in InitUI");
-        return;
-    }
-
-    InGameLog(">>> Creating View...");
-
-    g_view = PrismaUI->CreateView("EnxyAbilities/setting.html");
-
-    char buffer[64];
-    sprintf_s(buffer, ">>> View ID: %llu", g_view);
-    InGameLog(buffer);
-
-    if (!PrismaUI->IsValid(g_view)) {
-        InGameLog(">>> VIEW INVALID");
-        SKSE::log::error("View invalid");
-        return;
-    }
-
-    InGameLog(">>> VIEW CREATED SUCCESS");
-
-    PrismaUI->Hide(g_view);
-
-    InGameLog(">>> UI INITIALIZED");
-    SKSE::log::info("UI initialized");
-}
-
-void ToggleUI()
-{
-    if (!PrismaUI || !PrismaUI->IsValid(g_view))
-        return;
-
-    if (g_uiVisible)
-    {
-        PrismaUI->Hide(g_view);
-        PrismaUI->Unfocus(g_view);
-        g_uiVisible = false;
-        InGameLog("UI HIDDEN");
-    }
-    else
-    {
-        PrismaUI->Show(g_view);
-        PrismaUI->Focus(g_view, false);
-        g_uiVisible = true;
-        InGameLog("UI SHOWN");
-    }
-}
+    - name: Clean
+      shell: cmd
+      run: |
+        if exist build rmdir /s /q build
+    - name: Configure
+      shell: cmd
+      run: |
+        cmake -B build ^
+        -S . ^
+        -A x64 ^
+        -DCMAKE_BUILD_TYPE=Release ^
+        -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
+        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
+        -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%\scripts\buildsystems\vcpkg.cmake
+    - name: Build
+      shell: cmd
+      run: |
+        cmake --build build --config Release
+    - name: Upload DLL
+      uses: actions/upload-artifact@v4
+      with:
+        name: EnxyAbilities
+        path: build/**/*.dll
