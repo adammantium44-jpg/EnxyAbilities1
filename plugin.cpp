@@ -16,20 +16,10 @@ void InitializeUI();
 // =========================
 // SKSE LOAD ENTRY POINT
 // =========================
+
 bool SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
     SKSE::Init(skse);
-
-    auto messaging = SKSE::GetMessagingInterface();
-    if (messaging) {
-        messaging->RegisterListener(SKSEMessageHandler);
-    } else {
-        SKSE::log::error("Messaging interface not found");
-        return false;
-    }
-
-    SKSE::log::info("EnxyAbilities loaded successfully");
-
     return true;
 }
 
