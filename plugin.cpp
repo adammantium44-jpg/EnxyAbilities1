@@ -5,6 +5,9 @@
 // =========================
 #include "PrismaUI_API.h"
 
+static bool g_uiVisible = false;
+static PrismaView g_view = 0;
+
 static void InGameLog(const char* msg)
 {
     RE::ConsoleLog::GetSingleton()->Print(msg);
@@ -67,6 +70,13 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
         
             InGameLog(">>> PrismaUI CONNECTED");
             SKSE::log::info("PrismaUI FOUND");
+            
+            auto input = RE::BSInputDeviceManager::GetSingleton();
+            if (input)
+            {
+                input->AddEventSink(InputHandler::GetSingleton());
+                InGameLog("Input Handler Registered");
+            }
         
             InitializeUI();
         
@@ -93,8 +103,6 @@ void InitializeUI()
 
     InGameLog(">>> Creating View...");
 
-    static PrismaView g_view = 0;
-
     g_view = PrismaUI->CreateView("EnxyAbilities/setting.html");
 
     char buffer[64];
@@ -109,9 +117,63 @@ void InitializeUI()
 
     InGameLog(">>> VIEW CREATED SUCCESS");
 
-    PrismaUI->Show(g_view);
-    PrismaUI->Focus(g_view, true);
+    PrismaUI->Hide(g_view); // start hidden
 
     InGameLog(">>> UI SHOWN");
     SKSE::log::info("UI initialized");
 }
+
+void ToggleUI()
+{
+    if (!PrismaUI || !PrismaUI->IsValid(g_view))
+        return;
+
+    if (g_uiVisible)
+    {
+        PrismaUI->Hide(g_view);
+        PrismaUI->Unfocus(g_view);
+        g_uiVisible = false;
+
+        RE::ConsoleLog::GetSingleton()->Print("UI HIDDEN");
+    }
+    else
+    {
+        PrismaUI->Show(g_view);
+        PrismaUI->Focus(g_view, false);
+        g_uiVisible = true;
+
+        RE::ConsoleLog::GetSingleton()->Print("UI SHOWN");
+    }
+}
+
+class InputHandler : public RE::BSTEventSink<RE::InputEvent*>
+{
+public:
+    static InputHandler* GetSingleton()
+    {
+        static InputHandler instance;
+        return &instance;
+    }
+
+    RE::BSEventNotifyControl ProcessEvent(
+        RE::InputEvent* const* a_events,
+        RE::BSTEventSource<RE::InputEvent*>*) override
+    {
+        if (!a_events)
+            return RE::BSEventNotifyControl::Continue;
+
+        for (auto event = *a_events; event; event = event->next)
+        {
+            auto button = event->AsButtonEvent();
+            if (!button || !button->IsDown())
+                continue;
+
+            if (button->GetIDCode() == 0x3F) // F6
+            {
+                ToggleUI();
+            }
+        }
+
+        return RE::BSEventNotifyControl::Continue;
+    }
+};
